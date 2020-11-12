@@ -1,14 +1,14 @@
 from flask import Flask, jsonify
 
-app = Flask("zd-mailbot")
+application = Flask("zd-mailbot")
 
 
-@app.route("/")
+@application.route("/")
 def hello_world():
     return "Hello, World!"
 
 
-@app.route("/jsondata")
+@application.route("/jsondata")
 def jsondata():
     return jsonify({"name": "duncan"}), 200
 
