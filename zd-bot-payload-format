@@ -1,5 +1,4 @@
-{% comment %} Construct body vwoebzytrecuecoi {% endcomment %}
-
+{% comment %} Construct body {% endcomment %}
 {% capture html_body %}
     <style>
         blockquote { line-height; 1.0 }
@@ -28,12 +27,10 @@
 
     This request originated in ticket #{{ticket.id}}.
 {% endcapture %}
-
-
 {
     "ticket_id": {{ ticket.id }},
-    "consultant": {{ ticket.ticket_field_360038489912 }},
-    "subject": {{ ticket.title }},
-    "body": {{ html_body | strip_html }},
-    "html_body": {{ html_body }},
+    "consultant": "{{ ticket.ticket_field_360038489912 }}",
+    "subject": "{{ ticket.title }}",
+    "body": "{{ html_body | strip_html }}",
+    "html_body": "{{ html_body }}"
 }

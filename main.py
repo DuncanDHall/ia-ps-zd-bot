@@ -40,8 +40,8 @@ def test_get():
 def consult():
     try:
         json = request.get_json()
-        print("JSON? >> ", json)
     except BadRequest as e:
+        print("JSON? >> ", request.data)
         return jsonify({"Error": "Bad Request: Could not parse json object"}), 400
 
     try:
