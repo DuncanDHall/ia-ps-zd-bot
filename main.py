@@ -4,6 +4,8 @@ from werkzeug.exceptions import BadRequest
 import smtplib
 from email.message import EmailMessage
 
+from config import *
+
 app = Flask("zd-mailbot")
 application = app # Heroku seems to really want this
 
@@ -27,17 +29,19 @@ def test_get():
         return request.get_json(), 200
 
 
-# payload structure:
-# {
-#     "ticket_id": Int,
-#     "consultant": "<consultant>@archive.org",
-#     "subject": String,
-#     "body": String,
-#     "html_body": String,
-# }
-
 @app.route("/consult.json", methods=['POST'])
 def consult():
+    """
+    payload structure:
+        {
+            "ticket_id": Int,
+            "consultant": "<consultant>@archive.org",
+            "subject": String,
+            "body": String,
+            "html_body": String,
+        }
+    :return:
+    """
     try:
         json = request.get_json()
     except BadRequest as e:
@@ -45,41 +49,36 @@ def consult():
         return jsonify({"Error": "Bad Request: Could not parse json object"}), 400
 
     try:
-        message_args = json['consultant'], json['subject'], json['body'], json['ticket_id']
+        message_args = (
+            json['consultant'], json['subject'], json['body'],
+            json['html_body'], json['ticket_id']
+        )
     except KeyError as e:
         return jsonify({"Error": "Json object must contain the following non-optional keys",
-                        "keys": ["consultant", "subject", "body", "ticket_id"]}), 400
+                        "keys": ["consultant", "subject", "body", "html_body", "ticket_id"]}), 400
 
     msg = build_message(*message_args)
     send_message(msg)
     return jsonify({"Success": "Consultant has been emailed"}), 200
 
 
-def build_message(consultant, subject, body, ticket_id):
+def build_message(consultant, subject, body, html_body, ticket_id):
     msg = EmailMessage()
-    msg['From'] = 'dhall.testmail@gmail.com'
+    msg['From'] = BOT_ADDRESS
     msg['To'] = consultant
-    msg['CC'] = 'aezyer.spam@gmail.com'
+    msg['CC'] = CC_ADDRESS
     msg['Subject'] = subject
     msg.add_header('Ticket-ID', str(ticket_id))
-    msg.set_content(body)
-    # msg.set_content(html_body, subtype='html')
+    msg.set_content(html_body, subtype='html')
     return msg
 
 
 def send_message(msg):
-    smtp_host = 'smtp.gmail.com'
-    smtp_port = 587
-    smtp_mode = "tls"
-    smtp_login = 'dhall.testmail@gmail.com'
-    smtp_password = "vvdrtcinqsfhysiv"
-
-    service = smtplib.SMTP(smtp_host, smtp_port)
+    service = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
     service.starttls()
-    service.login(smtp_login, smtp_password)
+    service.login(BOT_ADDRESS, BOT_PASSWORD)
     service.send_message(msg)
     service.quit()
-
 
 
 if __name__ == "__main__":
