@@ -28,7 +28,14 @@ def test_get():
 
 
 # payload structure:
-#
+# {
+#     "ticket_id": Int,
+#     "consultant": "<consultant>@archive.org",
+#     "subject": String,
+#     "body": String,
+#     "html_body": String,
+# }
+
 @app.route("/consult.json", methods=['POST'])
 def consult():
     try:
