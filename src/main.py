@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 app = Flask("zd-mailbot")
 application = app # Heroku seems to really want this
@@ -14,8 +14,9 @@ def jsondata():
     return jsonify({"name": "duncan"}), 200
 
 
-@app.route("/consult.json")
+@app.route("/consult.json, methods=['GET']")
 def notify_consultant():
+    print(request)
     return jsonify({"job": "good"}), 200
 
 
