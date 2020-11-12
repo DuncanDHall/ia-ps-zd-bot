@@ -44,7 +44,13 @@ def consult():
     except BadRequest as e:
         return jsonify({"Error": "Bad Request: Could not parse json object"}), 400
 
-    msg = build_message(json['consultant'], json['subject'], json['body'], json['ticket_id'])
+    try:
+        message_args = json['consultant'], json['subject'], json['body'], json['ticket_id']
+    except KeyError as e:
+        return jsonify({"Error": "Json object must contain the following non-optional keys",
+                        "keys": ["consultant", "subject", "body", "ticket_id"]}), 400
+
+    msg = build_message(*message_args)
     send_message(msg)
     return jsonify({"Success": "Consultant has been emailed"}), 200
 
