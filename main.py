@@ -1,6 +1,7 @@
+import os
+
 from flask import Flask, jsonify, request
 from werkzeug.exceptions import BadRequest
-
 import smtplib
 from email.message import EmailMessage
 
@@ -62,21 +63,31 @@ def consult():
     return jsonify({"Success": "Consultant has been emailed"}), 200
 
 
-def build_message(consultant, subject, body, html_body, ticket_id):
+def build_message(rcpt, subject, body, html_body=None, ticket_id=None, include_internal_message=True):
+    def format_with_ticket_id(subject, ticket_id):
+        return SUBJECT_PATTERN.format(ticket_id, subject)
     msg = EmailMessage()
     msg['From'] = BOT_ADDRESS
-    msg['To'] = consultant
+    msg['To'] = rcpt
     msg['CC'] = CC_ADDRESS
-    msg['Subject'] = subject
-    msg.add_header('Ticket-ID', str(ticket_id))
-    msg.set_content(html_body, subtype='html')
+    if ticket_id:
+        msg['Subject'] = format_with_ticket_id(subject, ticket_id)
+        msg.add_header('Ticket-ID', str(ticket_id))
+    else:
+        msg['Subject'] = subject
+    if include_internal_message:
+        msg.set_content(INTERNAL_MESSAGE + body)
+    else:
+        msg.set_content(body)
+    if html_body is not None:
+        msg.add_alternative(html_body, subtype='html')
     return msg
 
 
 def send_message(msg):
     service = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
     service.starttls()
-    service.login(BOT_ADDRESS, BOT_PASSWORD)
+    service.login(BOT_ADDRESS, os.environ['GMAIL_PASSWORD'])
     service.send_message(msg)
     service.quit()
 
