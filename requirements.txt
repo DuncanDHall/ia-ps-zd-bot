@@ -1,3 +1,5 @@
 gunicorn
 flask
 imapclient
+requests
+html2text
