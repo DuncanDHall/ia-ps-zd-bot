@@ -9,6 +9,8 @@ from config import *
 
 app = Flask("zd-mailbot")
 
+# Test with:
+# curl http://0.0.0.0:5000/consult.json -X POST -H "Content-Type: application/json" --data '{"consultant": "dhall.sub@icloud.com", "subject": "Make sure this works", "body": "This is a test", "html_body": "This is a test <b>(html)</b>", "ticket_id": 257064}'
 
 @app.route("/")
 def hello_world():

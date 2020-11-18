@@ -1,0 +1,6 @@
+# This is a crontab for checking the mailbot's mailbox
+
+*/10 * * * * DISPLAY=:0 pipenv run python3 check-mail.py
+
+* * * * * DISPLAY=:0 echo "minute"
+

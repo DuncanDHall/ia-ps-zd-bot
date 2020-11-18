@@ -3,6 +3,7 @@ from requests.auth import HTTPBasicAuth
 import re
 import imaplib
 import os
+import time
 
 from imapclient import IMAPClient
 import quopri
@@ -45,7 +46,7 @@ def run():
             continue
         print("ticket updated:")
         print("\tID: {}".format(ticket))
-        print("\tBody: {}".format(body))
+        print("\tBody: {}".format(body.partition('\n')[0][:100]))
         print("\tSender: {}".format(sender))
         print("\tPublic/Reply-all: {}".format(reply_all))
 
@@ -122,7 +123,7 @@ def parse_msg_data(msg_data):
     # get public flag
     reply_all = False
     if envelope.cc is not None:
-        if os.environ['MAILBOT_CC_ADDRESS'] in [cc.decode() for cc in envelope.cc]:
+        if os.environ['MAILBOT_CC_ADDRESS'] in ["{}@{}".format(cc.mailbox.decode(), cc.host.decode()) for cc in envelope.cc]:
             reply_all = True
 
     return ticket, response_body, sender, reply_all
@@ -231,4 +232,6 @@ def post_ticket_update(ticket_id, payload):
 
 
 if __name__ == '__main__':
-    run()
+    while True:
+        run()
+        time.sleep(10*60)

@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+
+  # send email by http request from ZD
+  send:
+    build:
+      context: .
+      dockerfile: Dockerfile-send
+    image: sender:consult-mailbot  # name the image 'mailbot'
+    container_name: sender
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"
+
+  # check mailbox and update ZD ticket
+  receive:
+    build:
+      context: .
+      dockerfile: Dockerfile-receive
+    image: receiver:consult-mailbot
+    container_name: receiver
+    env_file:
+      - .env
