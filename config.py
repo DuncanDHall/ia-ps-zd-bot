@@ -1,5 +1,3 @@
-BOT_ADDRESS = 'dhall.testmail@gmail.com'
-CC_ADDRESS = 'aezyer.spam@gmail.com'
 MAILBOX_FOLDER = 'INBOX'
 
 IMAP_SERVER = "imap.gmail.com"
@@ -9,7 +7,6 @@ SMTP_MODE = "tls"
 
 ZD_ADDRESS = "support@archivesupport.zendesk.com"
 
-AGENT_ACCOUNT = "duncan@archive.org"
 SUBJECT_PATTERN = "ZDC{}: {}"
 DELIMITER = "==============================="
 INTERNAL_MESSAGE = """

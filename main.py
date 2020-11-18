@@ -8,7 +8,6 @@ from email.message import EmailMessage
 from config import *
 
 app = Flask("zd-mailbot")
-application = app # Heroku seems to really want this
 
 
 @app.route("/")
@@ -64,12 +63,14 @@ def consult():
 
 
 def build_message(rcpt, subject, body, html_body=None, ticket_id=None, include_internal_message=True):
+
     def format_with_ticket_id(subject, ticket_id):
         return SUBJECT_PATTERN.format(ticket_id, subject)
+
     msg = EmailMessage()
-    msg['From'] = BOT_ADDRESS
+    msg['From'] = os.environ['MAILBOT_ADDRESS']
     msg['To'] = rcpt
-    msg['CC'] = CC_ADDRESS
+    msg['CC'] = os.environ['MAILBOT_CC_ADDRESS']
     if ticket_id:
         msg['Subject'] = format_with_ticket_id(subject, ticket_id)
         msg.add_header('Ticket-ID', str(ticket_id))
@@ -87,11 +88,12 @@ def build_message(rcpt, subject, body, html_body=None, ticket_id=None, include_i
 def send_message(msg):
     service = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
     service.starttls()
-    service.login(BOT_ADDRESS, os.environ['GMAIL_PASSWORD'])
+    # print(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_GMAIL_PASSWORD'])
+    service.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_GMAIL_PASSWORD'])
     service.send_message(msg)
     service.quit()
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
 

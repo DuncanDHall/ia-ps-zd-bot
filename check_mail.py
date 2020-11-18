@@ -52,7 +52,7 @@ def run():
 
 def setup_client():
     client = IMAPClient(IMAP_SERVER)
-    client.login(BOT_ADDRESS, os.environ['GMAIL_PASSWORD'])
+    client.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_GMAIL_PASSWORD'])
     client.select_folder('INBOX', readonly=False)
     return client
 
@@ -62,7 +62,7 @@ def setup_client():
 def setup_connection():
     connection = imaplib.IMAP4_SSL(IMAP_SERVER)
     try:
-        rv, data = connection.login(BOT_ADDRESS, os.environ['GMAIL_PASSWORD'])
+        rv, data = connection.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_GMAIL_PASSWORD'])
     except imaplib.IMAP4.error as e:
         print("Error: Login failed ", e)
         exit(1)
@@ -117,20 +117,24 @@ def parse_msg_data(msg_data):
     else:
         address = envelope.sender[0]
     # ("John Smith", "jsmith@example.com")
-    sender = (address.name.decode(), address.mailbox.decode() + address.host.decode())
+    sender = (address.name.decode(), "{}@{}".format(address.mailbox.decode(), address.host.decode()))
 
-    reply_all = envelope.cc is not None
+    # get public flag
+    reply_all = False
+    if envelope.cc is not None:
+        if os.environ['MAILBOT_CC_ADDRESS'] in [cc.decode() for cc in envelope.cc]:
+            reply_all = True
 
     return ticket, response_body, sender, reply_all
 
 
 def send_rejection(receiver):
     subject = "You have reached an automated mailbox"
-    body = """Hi, 
-    
+    body = """Hi,
+
     You've reached the automated mailbox, used by the Internet Archive's Patron Services team. \
     If you were trying to reach an actual person, best to look elsewhere.
-    
+
     Bye!
     """
     msg = build_message(receiver, subject, body, None)
@@ -198,7 +202,7 @@ payload_template_dict = {
 }
 
 comment_template = """{body}
-    - {signed}
+– {signed}
 """
 
 
@@ -218,7 +222,9 @@ def post_ticket_update(ticket_id, payload):
     url_template = 'https://{subdomain}.zendesk.com/api/v2/tickets/{id}.json'
     response = requests.put(
         url_template.format(subdomain='archivesupport', id=ticket_id),
-        auth=HTTPBasicAuth(AGENT_ACCOUNT + "/token", os.environ['ZENDESK_API_KEY']),
+        auth=HTTPBasicAuth(
+            os.environ['MAILBOT_AGENT_ACCOUNT'] + "/token",
+            os.environ['ZENDESK_API_KEY']),
         json=payload
     )
     return response
@@ -226,4 +232,3 @@ def post_ticket_update(ticket_id, payload):
 
 if __name__ == '__main__':
     run()
-
