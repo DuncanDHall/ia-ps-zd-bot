@@ -53,7 +53,7 @@ def run():
 
 def setup_client():
     client = IMAPClient(IMAP_SERVER)
-    client.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_GMAIL_PASSWORD'])
+    client.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_PASSWORD'])
     client.select_folder('INBOX', readonly=False)
     return client
 
@@ -63,7 +63,7 @@ def setup_client():
 def setup_connection():
     connection = imaplib.IMAP4_SSL(IMAP_SERVER)
     try:
-        rv, data = connection.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_GMAIL_PASSWORD'])
+        rv, data = connection.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_PASSWORD'])
     except imaplib.IMAP4.error as e:
         print("Error: Login failed ", e)
         exit(1)

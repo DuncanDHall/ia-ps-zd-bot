@@ -44,6 +44,13 @@ def consult():
         }
     :return:
     """
+    auth = request.authorization
+    if auth is None:
+        return jsonify({"Error": "Provide basic auth to use this service."}), 401
+    if (auth['username'] != os.environ['ZENDESK_TRIGGER_USERNAME'] or
+            auth['password'] != os.environ['ZENDESK_TRIGGER_PASSWORD']):
+        return jsonify({"Error": "Invalid Username/Password"}), 401
+
     try:
         json = request.get_json()
     except BadRequest as e:
@@ -90,8 +97,8 @@ def build_message(rcpt, subject, body, html_body=None, ticket_id=None, include_i
 def send_message(msg):
     service = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
     service.starttls()
-    # print(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_GMAIL_PASSWORD'])
-    service.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_GMAIL_PASSWORD'])
+    # print(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_PASSWORD'])
+    service.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_PASSWORD'])
     service.send_message(msg)
     service.quit()
 
