@@ -1,4 +1,4 @@
-import os
+from os import environ as env
 
 from flask import Flask, jsonify, request
 from werkzeug.exceptions import BadRequest
@@ -6,6 +6,8 @@ import smtplib
 from email.message import EmailMessage
 
 from config import *
+from custom_logging import logger
+import mail
 
 app = Flask("zd-mailbot")
 
@@ -27,7 +29,6 @@ def test_get():
     if request.method == 'GET':
         return jsonify({"good": "going!"}), 200
     elif request.method == 'POST':
-        print(">>>>", request.get_json())
         return request.get_json(), 200
 
 
@@ -44,18 +45,24 @@ def consult():
         }
     :return:
     """
+    logger.info("{} request from {}".format(request.method, request.origin))
     auth = request.authorization
     if auth is None:
-        return jsonify({"Error": "Provide basic auth to use this service."}), 401
-    if (auth['username'] != os.environ['ZENDESK_TRIGGER_USERNAME'] or
-            auth['password'] != os.environ['ZENDESK_TRIGGER_PASSWORD']):
-        return jsonify({"Error": "Invalid Username/Password"}), 401
+        message = "Provide basic auth to use this service."
+        logger.error(message)
+        return jsonify({"Error": message}), 401
+    if (auth['username'] != env['ZENDESK_TRIGGER_USERNAME'] or
+            auth['password'] != env['ZENDESK_TRIGGER_PASSWORD']):
+        message = "Invalid Username/Password"
+        logger.error(message)
+        return jsonify({"Error": message}), 401
 
     try:
         json = request.get_json()
     except BadRequest as e:
-        print("JSON? >> ", request.data)
-        return jsonify({"Error": "Bad Request: Could not parse json object"}), 400
+        message = "Bad Request: Could not parse json object"
+        logger.error(message)
+        return jsonify({"Error": message}), 400
 
     try:
         message_args = (
@@ -63,44 +70,18 @@ def consult():
             json['html_body'], json['ticket_id']
         )
     except KeyError as e:
+        logger.error("Invalid data keys")
         return jsonify({"Error": "Json object must contain the following non-optional keys",
                         "keys": ["consultant", "subject", "body", "html_body", "ticket_id"]}), 400
 
-    msg = build_message(*message_args)
-    send_message(msg)
+    mail.send_mail(
+        sender='{} <{}>'.format(MAILBOT_NAME, env['MAILBOT_ADDRESS']),
+        receiver=json['consultant'],
+        subject=SUBJECT_PATTERN.format(json['ticket_id'], json['subject']),
+        body=json['body'],
+        cc=['{} <{}>'.format(MAILBOT_CC_NAME, env['MAILBOT_CC_ADDRESS'])]
+    )
     return jsonify({"Success": "Consultant has been emailed"}), 200
-
-
-def build_message(rcpt, subject, body, html_body=None, ticket_id=None, include_internal_message=True):
-
-    def format_with_ticket_id(subject, ticket_id):
-        return SUBJECT_PATTERN.format(ticket_id, subject)
-
-    msg = EmailMessage()
-    msg['From'] = os.environ['MAILBOT_ADDRESS']
-    msg['To'] = rcpt
-    msg['CC'] = os.environ['MAILBOT_CC_ADDRESS']
-    if ticket_id:
-        msg['Subject'] = format_with_ticket_id(subject, ticket_id)
-        msg.add_header('Ticket-ID', str(ticket_id))
-    else:
-        msg['Subject'] = subject
-    if include_internal_message:
-        msg.set_content(INTERNAL_MESSAGE + body)
-    else:
-        msg.set_content(body)
-    if html_body is not None:
-        msg.add_alternative(html_body, subtype='html')
-    return msg
-
-
-def send_message(msg):
-    service = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-    service.starttls()
-    # print(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_PASSWORD'])
-    service.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_PASSWORD'])
-    service.send_message(msg)
-    service.quit()
 
 
 if __name__ == "__main__":

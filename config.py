@@ -1,11 +1,24 @@
 MAILBOX_FOLDER = 'INBOX'
 
-IMAP_SERVER = "imap.gmail.com"
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = "587"
-SMTP_MODE = "tls"
+IMAP_SERVER = "mail.archive.org"
+IMAP_PORT = "993"
+IMAP_MODE = "ssl"
+SMTP_SERVER = "mail.archive.org"
+SMTP_PORT = "465"
+SMTP_MODE = "ssl"
 
-ZD_ADDRESS = "support@archivesupport.zendesk.com"
+MAILBOT_NAME = "Support Team (automated)"
+MAILBOT_CC_NAME = "Original Sender (automated)"
+
+# Authentication in .env
+# MAILBOT_ADDRESS
+# MAILBOT_PASSWORD
+# MAILBOT_CC_ADDRESS
+# MAILBOT_AGENT_ACCOUNT
+# ZENDESK_API_KEY
+# ZENDESK_TRIGGER_USERNAME
+# ZENDESK_TRIGGER_PASSWORD
+
 
 SUBJECT_PATTERN = "ZDC{}: {}"
 DELIMITER = "==============================="

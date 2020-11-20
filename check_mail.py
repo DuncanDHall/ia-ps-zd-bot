@@ -1,16 +1,15 @@
 import requests
 from requests.auth import HTTPBasicAuth
 import re
-import imaplib
-import os
+from os import environ as env
 import time
 
-from imapclient import IMAPClient
 import quopri
 import html2text
 
 from config import *
-from main import send_message, build_message
+from custom_logging import logger
+import mail
 
 
 class TicketUpdateException(Exception):
@@ -23,75 +22,26 @@ def run():
     # msgs_data = get_data_for_msgs(connection, msg_ids)
     # pickle.dump(msgs_data, open('message-data.pickle', 'wb'))
 
-    print("setting up the email client")
-    client = setup_client()
-    print("searching for new mail...")
-    msg_ids = client.search('UNSEEN')
-    print("\t{} new emails found: {}".format(len(msg_ids), msg_ids))
-    print("getting full email data")
-    msgs_data = client.fetch(msg_ids, ['BODY[TEXT]', 'ENVELOPE'])
+    msgs_data = mail.get_raw_mail()
 
-    for msg_id in msg_ids:
-        print("parsing message")
+    for msg_id in msgs_data.keys():
+        logger.info("parsing message")
         ticket, body, sender, reply_all = parse_msg_data(msgs_data[msg_id])
         if ticket is None:
-            print("sending rejection message")
-            send_rejection(sender)
+            logger.info("sending rejection message")
+            send_rejection(sender[1])
             continue
-        print("updating ticket")
+        logger.info("updating ticket")
         try:
             update_ticket(ticket, body, sender, reply_all)
         except TicketUpdateException as e:
-            print(e)
+            logger.error(e)
             continue
-        print("ticket updated:")
-        print("\tID: {}".format(ticket))
-        print("\tBody: {}".format(body.partition('\n')[0][:100]))
-        print("\tSender: {}".format(sender))
-        print("\tPublic/Reply-all: {}".format(reply_all))
-
-
-def setup_client():
-    client = IMAPClient(IMAP_SERVER)
-    client.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_PASSWORD'])
-    client.select_folder('INBOX', readonly=False)
-    return client
-
-# MARK: Getting new messages
-
-
-def setup_connection():
-    connection = imaplib.IMAP4_SSL(IMAP_SERVER)
-    try:
-        rv, data = connection.login(os.environ['MAILBOT_ADDRESS'], os.environ['MAILBOT_PASSWORD'])
-    except imaplib.IMAP4.error as e:
-        print("Error: Login failed ", e)
-        exit(1)
-    connection.select('INBOX', readonly=True)
-    return connection
-
-
-def check_ok(rv, data):
-    if rv != 'OK':
-        print("Bad: ", rv, data)
-        exit(1)
-
-
-def get_new_msg_ids(connection):
-    rv, data = connection.search(None, 'UNSEEN')
-    check_ok(rv, data)
-    return data[0].decode().split(' ')
-
-
-def get_data_for_msgs(connection, msg_ids):
-    # TODO implement whitelist
-    rv, data = connection.fetch(','.join(msg_ids), '(UID BODY[TEXT])')
-    check_ok(rv, data)
-    return [d for d in data if d != b')']
+        logger.info("ticket updated – ID: {}, Body: {}, Sender: {}, Public: {}".format(
+            ticket, body.partition('\n')[0][:100], sender, reply_all))
 
 
 # MARK: Handling messages
-
 
 def parse_msg_data(msg_data):
 
@@ -101,10 +51,12 @@ def parse_msg_data(msg_data):
         '.*'           # original subject line
     ))
     subject = msg_data[b'ENVELOPE'].subject.decode()
-    try:
-        ticket = subject_pattern.search(subject).group('id')
-    except:
-        raise Exception('Malformed subject line "{}"'.format(subject))
+    match = subject_pattern.search(subject)
+    if match is None:
+        logger.error('Received mail with invalid subject line: "{}"'.format(subject))
+        ticket = None
+    else:
+        ticket = match.group('id')
 
     # get body
     response_body = get_plain_response_body(msg_data[b'BODY[TEXT]'])
@@ -123,7 +75,7 @@ def parse_msg_data(msg_data):
     # get public flag
     reply_all = False
     if envelope.cc is not None:
-        if os.environ['MAILBOT_CC_ADDRESS'] in ["{}@{}".format(cc.mailbox.decode(), cc.host.decode()) for cc in envelope.cc]:
+        if env['MAILBOT_CC_ADDRESS'] in ["{}@{}".format(cc.mailbox.decode(), cc.host.decode()) for cc in envelope.cc]:
             reply_all = True
 
     return ticket, response_body, sender, reply_all
@@ -134,12 +86,19 @@ def send_rejection(receiver):
     body = """Hi,
 
     You've reached the automated mailbox, used by the Internet Archive's Patron Services team. \
-    If you were trying to reach an actual person, best to look elsewhere.
+    
+    You are receiving this because you sent an email with incorrectly formatted subject line to \
+    this address. If you are replying to an automated email from this address, please leave the \
+    subject line intact.
 
-    Bye!
+    Thanks!
     """
-    msg = build_message(receiver, subject, body, None)
-    send_message(msg)
+    mail.send_mail(
+        sender='{} <{}>'.format(MAILBOT_NAME, env['MAILBOT_ADDRESS']),
+        receiver=receiver,
+        subject=subject,
+        body=body,
+    )
 
 
 def get_plain_response_body(raw_body):
@@ -153,7 +112,7 @@ def get_plain_response_body(raw_body):
             break
     if plain is None:
         if html is None:
-            print("Could not find plain or html text section.")
+            logger.error("could not find plain or html text section.")
             exit(1)
         plain = html2text.HTML2Text().handle(html)
 
@@ -215,7 +174,7 @@ def update_ticket(ticket_id, body, sender, public=True):
     payload['ticket']['comment']['public'] = public
     response = post_ticket_update(ticket_id, payload)
     if response.status_code != 200:
-        print(response.content)
+        logger.info('ZD API: ' + response.content)
         raise TicketUpdateException()
 
 
@@ -224,8 +183,8 @@ def post_ticket_update(ticket_id, payload):
     response = requests.put(
         url_template.format(subdomain='archivesupport', id=ticket_id),
         auth=HTTPBasicAuth(
-            os.environ['MAILBOT_AGENT_ACCOUNT'] + "/token",
-            os.environ['ZENDESK_API_KEY']),
+            env['MAILBOT_AGENT_ACCOUNT'] + "/token",
+            env['ZENDESK_API_KEY']),
         json=payload
     )
     return response
@@ -234,4 +193,4 @@ def post_ticket_update(ticket_id, payload):
 if __name__ == '__main__':
     while True:
         run()
-        time.sleep(10*60)
+        time.sleep(60)
