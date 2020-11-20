@@ -22,7 +22,7 @@ DEFAULT_SMTP_CONFIG = {
 }
 
 
-def get_raw_mail(unseen=False, read_only=False, config=DEFAULT_IMAP_CONFIG):
+def get_raw_mail(unseen=True, read_only=False, config=DEFAULT_IMAP_CONFIG):
     host = config['host']
     port = config['port']
     user = config['user']

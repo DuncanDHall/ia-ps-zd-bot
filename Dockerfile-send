@@ -5,10 +5,10 @@ MAINTAINER Duncan Hall "duncan@archive.org"
 RUN apt-get update -y && \
     apt-get install -y python3.7 python3-pip
 
-COPY * /
+COPY config.py custom_logging.py mail.py Procfile requirements.txt sender.py /
 
 RUN pip3 install -r requirements.txt
 
 EXPOSE 5000
 
-CMD ["gunicorn", "-b 0.0.0.0:5000", "main:app"]
+CMD ["gunicorn", "-b 0.0.0.0:5000", "sender:app"]
