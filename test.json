@@ -1,0 +1,7 @@
+curl http://0.0.0.0:5000/consult.json -X POST -u zendesk -H "Content-Type: application/json" --data '{
+    "ticket_id": 111111,
+    "consultant": "dhall.sub@icloud.com",
+    "subject": "Need Help Accessing my Account",
+    "body": "<style>blockquote { line-height; 1.0 }</style>\n<h3>Ticket Log</h3>\n<p><blockquote><i>Internal Note: <b>Brian Smith</b> at 10:00am on Nov 23, 2020\n<br>Hi dhall, I need your help with this patrons problem\nthey need assistance with their account\n</i></blockquote></p>\n\n<p><b>Support Agent</b> at 10:00am on Nov 23, 2020\n<br>Hi Brian,\n\nlet me check in with someone who will know more about the trouble youre having\n\nthanks, \nSupport Agent\n</p>\n\n<p><b>Brian Smith</b> at 10:00am on Nov 23, 2020\n<br>Hi support, Im having issues with my account\n</p>\n\nThis request originated in ticket #{{ticket.id}}{% endcapture %}",
+    "html_body": "<style>blockquote { line-height; 1.0 }</style>\n<h3>Ticket Log</h3>\n<p><blockquote><i>Internal Note: <b>Brian Smith</b> at 10:00am on Nov 23, 2020\n<br>Hi dhall, I need your help with this patrons problem\nthey need assistance with their account\n</i></blockquote></p>\n\n<p><b>Support Agent</b> at 10:00am on Nov 23, 2020\n<br>Hi Brian,\n\nlet me check in with someone who will know more about the trouble youre having\n\nthanks, \nSupport Agent\n</p>\n\n<p><b>Brian Smith</b> at 10:00am on Nov 23, 2020\n<br>Hi support, Im having issues with my account\n</p>\n\nThis request originated in ticket #{{ticket.id}}{% endcapture %}"
+}'

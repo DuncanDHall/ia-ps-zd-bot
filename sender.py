@@ -74,11 +74,14 @@ def consult():
         return jsonify({"Error": "Json object must contain the following non-optional keys",
                         "keys": ["consultant", "subject", "body", "html_body", "ticket_id"]}), 400
 
+    body = INTERNAL_MESSAGE_PLAIN + json['body']
+    html_body = INTERNAL_MESSAGE_HTML + json['html_body']
     mail.send_mail(
         sender='{} <{}>'.format(MAILBOT_NAME, env['MAILBOT_ADDRESS']),
         receiver=json['consultant'],
         subject=SUBJECT_PATTERN.format(json['ticket_id'], json['subject']),
-        body=json['body'],
+        body=body,
+        html_body = html_body,
         cc=['{} <{}>'.format(MAILBOT_CC_NAME, env['MAILBOT_CC_ADDRESS'])]
     )
     return jsonify({"Success": "Consultant has been emailed"}), 200

@@ -1,5 +1,12 @@
 {% comment %} Construct body {% endcomment %}
-{% capture html_body %}<style>blockquote { line-height; 1.0 }</style>{{ ticket.ticket_field_360037980252 }}<br><br><h3>Ticket Log</h3><blockquote>{% for comment in ticket.comments %}<p>{% unless comment.is_public %}</blockquote><i>Internal Note: {% endunless %}<b>{{ comment.author.name }}</b> at {{ comment.created_at_with_time}}<br>{{ comment.value }}{% for attachment in comment.attachments %}<br>Attached: <a href={{ attachment.url }}>{{ attachment.filename }}</a>{% endfor %}{% unless comment.is_public %}</i><blockquote>{% endunless %}</p>{% endfor %}</blockquote>This request originated in ticket #{{ticket.id}}{% endcapture %}
+{% capture html_body %}<style>blockquote { line-height; 1.0 }</style>{{ ticket.ticket_field_360037980252 }}<br><br>
+<h3>Ticket Log</h3>{% for comment in ticket.comments %}
+
+<p>{% unless comment.is_public %}<blockquote><i>Internal Note: {% endunless %}<b>{{ comment.author.name }}</b> at {{ comment.created_at_with_time}}
+<br>{{ comment.value }}{% for attachment in comment.attachments %}
+<br>Attached: <a href={{ attachment.url }}>{{ attachment.filename }}</a>{% endfor %}{% unless comment.is_public %}</i></blockquote>{% endunless %}</p>{% endfor %}
+
+This request originated in ticket #{{ticket.id}}{% endcapture %}
 {
     "ticket_id": {{ ticket.id }},
     "consultant": "{{ ticket.ticket_field_360038489912 }}",

@@ -2,6 +2,7 @@ from os import environ as env
 import imapclient
 import smtplib
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from config import *
 from custom_logging import logger
@@ -46,19 +47,27 @@ def get_raw_mail(unseen=True, read_only=False, config=DEFAULT_IMAP_CONFIG):
         raise e
 
 
-def send_mail(sender, receiver, subject, body, cc=None, config=DEFAULT_SMTP_CONFIG):
+def send_mail(sender, receiver, subject, body, html_body=None, cc=None, config=DEFAULT_SMTP_CONFIG):
     host = config['host']
     port = config['port']
     user = config['user']
     password = config['pass']
     logger.info('sending email from {} to {} over {}:{}'.format(sender, receiver, host, port))
     logger.debug('composing message headers')
-    msg = MIMEText(body)
+
+    msg = MIMEMultipart('alternative')
     msg['From'] = sender
     msg['To'] = receiver
     if isinstance(cc, list):
         msg['Cc'] = ', '.join(cc)
     msg['Subject'] = subject
+
+    if html_body is not None:
+        html_part = MIMEText(html_body, 'html')
+        msg.attach(html_part)
+
+    text_part = MIMEText(body, 'plain')
+    msg.attach(text_part)
 
     try:
         logger.debug('establishing connection to {}:{}'.format(host, port))

@@ -21,18 +21,26 @@ MAILBOT_CC_NAME = "Original Sender (automated)"
 
 
 SUBJECT_PATTERN = "ZDC{}: {}"
-DELIMITER = "==============================="
-INTERNAL_MESSAGE = """
-
-
-{0}
-This is an automatically forwarded email from the Patron Support team's via Zendesk. Your \
-assistance with this ticket is greatly appreciated.
-
-Text sent in a reply above this note will appear in our ticket logs as an internal note. \
+DELIMITER = "===================="
+_MESSAGE = """This is an automatically forwarded email from the Internet Archive Patron Support
+team. Your assistance with this ticket is greatly appreciated. Text sent in a reply above this \
+note will appear in our ticket logs as an internal note. \
 If you feel it is appropriate, please Reply-All to share your response with the original \
 requester. Also, please don't edit the subject line. We need it to associate your reply \
-with the correct ticket.
-{0}
+with the correct request."""
 
-""".format(DELIMITER)
+INTERNAL_MESSAGE_PLAIN = """
+
+{0}{0}
+{1}
+{0}{0}
+
+""".format(DELIMITER, _MESSAGE)
+
+INTERNAL_MESSAGE_HTML = """
+<br>
+<p>{0}{0}</p>
+<p>{1}</p>
+<p>{0}{0}</p>
+<br>
+""".format(DELIMITER, _MESSAGE)
