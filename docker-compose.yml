@@ -12,8 +12,8 @@ services:
     env_file:
       - .env
     ports:
-      - "5000:5000"
-    restart: on-failure
+      - "127.0.0.1:5000:5000"
+    restart: unless-stopped
 
   # check mailbox and update ZD ticket
   receive:
@@ -24,4 +24,4 @@ services:
     container_name: receiver
     env_file:
       - .env
-    restart: on-failure
+    restart: unless-stopped
