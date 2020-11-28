@@ -6,8 +6,8 @@ import smtplib
 from email.message import EmailMessage
 
 from config import *
-from custom_logging import logger
-import mail
+from zdbotutils.custom_logging import logger
+from zdbotutils import mail
 
 app = Flask("zd-mailbot")
 

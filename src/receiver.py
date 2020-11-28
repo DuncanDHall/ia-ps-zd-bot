@@ -8,8 +8,8 @@ import quopri
 import html2text
 
 from config import *
-from custom_logging import logger
-import mail
+from zdbotutils.custom_logging import logger
+from zdbotutils import mail
 
 
 class TicketUpdateException(Exception):

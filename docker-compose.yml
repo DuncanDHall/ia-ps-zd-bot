@@ -3,12 +3,12 @@ version: "3.3"
 services:
 
   # send email by http request from ZD
-  send:
+  consult_send:
     build:
       context: .
       dockerfile: Dockerfile-send
-    image: sender:consult-mailbot  # name the image 'mailbot'
-    container_name: sender
+    image: consult_sender:consult-mailbot  # name the image 'mailbot'
+    container_name: consult_sender
     env_file:
       - .env
     ports:
@@ -16,12 +16,22 @@ services:
     restart: unless-stopped
 
   # check mailbox and update ZD ticket
-  receive:
+  consult_receive:
     build:
       context: .
       dockerfile: Dockerfile-receive
-    image: receiver:consult-mailbot
-    container_name: receiver
+    image: consult_receiver:consult-mailbot
+    container_name: consult_receiver
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  diffbot:
+    build:
+      context: .
+      dockerfile: Dockerfile-diff
+    image: differ:diffbot
+    container_name: differ
     env_file:
       - .env
     restart: unless-stopped
