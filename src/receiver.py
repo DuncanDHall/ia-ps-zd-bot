@@ -183,7 +183,7 @@ def post_ticket_update(ticket_id, payload):
     response = requests.put(
         url_template.format(subdomain='archivesupport', id=ticket_id),
         auth=HTTPBasicAuth(
-            env['MAILBOT_AGENT_ACCOUNT'] + "/token",
+            env['ZENDESK_AGENT_ACCOUNT'] + "/token",
             env['ZENDESK_API_KEY']),
         json=payload
     )

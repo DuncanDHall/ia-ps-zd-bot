@@ -27,6 +27,14 @@ def get_default_smtp_config():
     }
 
 
+def chunked(chunkee, size):
+    chunkee = list(chunkee)
+    for i in range(int(len(chunkee) / size) + 1):
+        chunk = chunkee[(i * size):((i + 1) * size)]
+        if chunk:
+            yield chunk
+
+
 def get_raw_mail(unseen=True, read_only=False, config=get_default_imap_config()):
     host = config['host']
     port = config['port']
@@ -41,11 +49,16 @@ def get_raw_mail(unseen=True, read_only=False, config=get_default_imap_config())
         server.login(user, password)
         logger.debug('selecting {}'.format(folder))
         server.select_folder(folder)
+
         logger.debug('polling for mail')
         msg_ids = server.search('UNSEEN' if unseen else 'ALL')
-        logger.info("{} {}emails found: {}".format(len(msg_ids), '' if unseen else 'new ', msg_ids))
+        logger.debug("{} {}emails found".format(len(msg_ids), '' if unseen else 'new '))
+
         logger.debug('fetching msg data')
-        msg_data = server.fetch(msg_ids, ['BODY[TEXT]', 'ENVELOPE'])
+        msg_data = {}
+        for msg_ids_chunk in chunked(msg_ids, 1000):
+            msg_data.update(server.fetch(msg_ids_chunk, ['BODY[TEXT]', 'ENVELOPE']))
+
         server.logout()
         return msg_data
     except Exception as e:
@@ -59,16 +72,23 @@ def get_msgs(folders):
         server = imapclient.IMAPClient(host=IMAP_SERVER, port=IMAP_PORT)
         logger.debug('logging in as ' + env['DIFFBOT_ADDRESS'])
         server.login(env['DIFFBOT_ADDRESS'], env['DIFFBOT_PASSWORD'])
+
         data = {}
         for folder in folders:
             logger.debug('selecting {}'.format(folder))
             server.select_folder(folder)
             logger.debug('polling for mail')
             msg_ids = server.search('ALL')
-            logger.info("{} emails found: {}".format(len(msg_ids), msg_ids))
+            logger.info("{} emails found".format(len(msg_ids)))
+
             logger.debug('fetching msg data')
-            msg_data = server.fetch(msg_ids, ['BODY[TEXT]', 'ENVELOPE', 'INTERNALDATE'])
+            msg_data = {}
+            for msg_ids_chunk in chunked(msg_ids, 1000):
+                logger.info('getting msg data for ids [{}... {}]'.format(msg_ids_chunk[0], msg_ids_chunk[-1]))
+                msg_data.update(server.fetch(msg_ids_chunk, ['BODY[TEXT]', 'ENVELOPE', 'INTERNALDATE']))
+
             data[folder] = msg_data
+
         server.logout()
         return data
     except Exception as e:
@@ -77,15 +97,20 @@ def get_msgs(folders):
 
 
 def change_folder(msg_ids, current_folder, new_folder):
+    if not msg_ids:
+        return
     logger.debug('establishing connection to {}:{}'.format(IMAP_SERVER, IMAP_PORT))
     server = imapclient.IMAPClient(host=IMAP_SERVER, port=IMAP_PORT)
     logger.debug('logging in as ' + env['DIFFBOT_ADDRESS'])
     server.login(env['DIFFBOT_ADDRESS'], env['DIFFBOT_PASSWORD'])
     server.select_folder(current_folder)
-    logger.debug('moving messages from {} to {}: {}'.format(current_folder, new_folder, msg_ids))
-    server.copy(msg_ids, new_folder)
-    server.delete_messages(msg_ids)
-    server.expunge(msg_ids)
+    logger.debug('moving {} messages from {} to {}'.format(len(msg_ids), current_folder, new_folder))
+
+    for msg_ids_chunk in chunked(msg_ids, 1000):
+        server.copy(msg_ids_chunk, new_folder)
+        server.delete_messages(msg_ids_chunk)
+        server.expunge(msg_ids_chunk)
+    server.logout()
 
 
 def send_mail(sender, receiver, subject, body, html_body=None, cc=None, config=get_default_smtp_config()):
@@ -120,5 +145,4 @@ def send_mail(sender, receiver, subject, body, html_body=None, cc=None, config=g
     except Exception as e:
         logger.critical(e)
         raise e
-
 
