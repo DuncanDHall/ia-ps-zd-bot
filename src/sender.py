@@ -76,6 +76,8 @@ def consult():
 
     body = INTERNAL_MESSAGE_PLAIN + json['body']
     html_body = INTERNAL_MESSAGE_HTML + json['html_body']
+    body = body.replace('\\n', '\n')
+    html_body = html_body.replace('\\n', '\n')
     mail.send_mail(
         sender='{} <{}>'.format(MAILBOT_NAME, env['MAILBOT_ADDRESS']),
         receiver=json['consultant'],

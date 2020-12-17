@@ -112,11 +112,17 @@ def get_plain_response_body(raw_body):
             break
     if plain is None:
         if html is None:
-            logger.error("could not find plain or html text section.")
+            logger.error("could not find plain or html text section: {}".format(raw_body))
             exit(1)
         plain = html2text.HTML2Text().handle(html)
 
-    return plain.split(DELIMITER)[0]
+    prelim_lines = plain.split(DELIMITER)[0].split('\n')
+    if prelim_lines[-1].find(MAILBOT_NAME) != -1:
+        body = '\n'.join(prelim_lines[:-1])
+    else:
+        body = '\n'.join(prelim_lines)
+
+    return body.strip()
 
 
 def part_gen(raw_body, content_types=None):
@@ -157,9 +163,22 @@ payload_template_dict = {
                 "channel": "mailbot"
             }
         },
-        "status": "open"
+        "status": "open",
+        "additional_tags": ["_automated_update_"]
     }
 }
+# payload_template_dict = {
+#     "ticket": {
+#         "comment": {
+#             "body": "{body}",
+#             "public": False,
+#             "via": {
+#                 "channel": "mailbot"
+#             }
+#         },
+#         "status": "open"
+#     }
+# }
 
 comment_template = """{body}
 – {signed}
@@ -179,7 +198,7 @@ def update_ticket(ticket_id, body, sender, public=True):
 
 
 def post_ticket_update(ticket_id, payload):
-    url_template = 'https://{subdomain}.zendesk.com/api/v2/tickets/{id}.json'
+    url_template = 'https://{subdomain}.zendesk.com/api/v2/tickets/update_many.json?ids={id}'
     response = requests.put(
         url_template.format(subdomain='archivesupport', id=ticket_id),
         auth=HTTPBasicAuth(
