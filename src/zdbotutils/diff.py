@@ -1,11 +1,7 @@
 import datetime
 import difflib
-import io
 import re
-import multiprocessing
 import time
-import threading
-import concurrent.futures
 
 import diff_match_patch as dmp_module
 
@@ -15,18 +11,161 @@ from zdbotutils.custom_logging import logger
 from config import *
 
 
-def match_msgs(zd_msgs, archive_msgs):
-    return diff_pools(
+def match_msgs(needles, haystack):
+    return matching(
+        needles,
+        haystack,
+        sort_key=lambda time_comm_pair: time_comm_pair[0],
+        within_error=time_match,
+        is_match=comment_match
+    )
+
+
+def matching(needles, haystack, sort_key, within_error, is_match):
+    """
+    :param needles: items to be matched
+    :param haystack: candidate matches
+    :param sort_key: function for sorting items
+    :param within_error: func whether items are within error margin w/respect to sort attr.
+    :param is_match: func whether items are match
+    :return: four tuple: matched/unmatched from dict1/dict2
+    """
+
+    needles.sort(key=sort_key)
+    haystack.sort(key=sort_key)
+
+    j0 = 0  # the 'lower bound' index in bb for matching
+
+    matched_needles = set()
+    unmatched_needles = set()
+    matched_hay = set()
+    unmatched_hay = set()
+
+    # import pudb
+    # pudb.set_trace()
+
+    for i, triple in enumerate(needles):
+        logger.info('Searching for match for item {}/{}'.format(i, len(needles)))
+        t, c, n = triple
+
+        # move the lower bound up
+        while j0 < len(haystack):
+            # once we are within error, stop increasing
+            if within_error(t, haystack[j0][0]):
+                break
+            # if we get beyond our needle, stop increasing
+            if sort_key(triple) < sort_key(haystack[j0]):
+                break
+            # any unmatched hay at j0 at this point is unmatched
+            if not haystack[j0] in matched_hay:
+                unmatched_hay.add(haystack[j0])
+            j0 += 1
+
+        j = j0
+        MATCH_FOUND = False  # TODO remove
+        while True:
+            # don't run off the end of haystack
+            if j == len(haystack):
+                # TODO
+                if not MATCH_FOUND:
+                    unmatched_needles.add(triple)
+                break
+            # skip hay already matched
+            elif haystack[j] in matched_hay:
+                pass
+            # if hay is beyond error, then no match for needle
+            elif not within_error(t, haystack[j][0]):
+                # TODO
+                if not MATCH_FOUND:
+                    unmatched_needles.add(triple)
+                break
+            # we got a match
+            elif is_match(c, haystack[j][1]):
+                matched_needles.add(triple)
+                matched_hay.add(haystack[j])
+                # TODO: bring this break back when we know that we don't have duplicate emails
+                MATCH_FOUND = True
+                # break
+            # try the next hay
+            j += 1
+
+    return matched_needles, unmatched_needles, matched_hay, unmatched_hay
+
+
+def time_match(t1, t2):
+    margin = MINUTES_TIME_MATCH_ERROR * 60
+    verdict = t1 - t2 < margin and t2 - t1 < margin
+    logger.debug('comparing {} and {}, {}within {} margin'.format(
+        t1, t2, '' if verdict else 'not ', margin
+    ))
+    return verdict
+
+
+def comment_match(c1, c2):
+
+    # remove all whitespace
+    c1 = re.sub('[^\w]', '', c1)
+    c2 = re.sub('[^\w]', '', c2)
+    # c1 = re.sub('\s+', ' ', c1).strip()
+    # c2 = re.sub('\s+', ' ', c2).strip()
+
+    # zendesk seems to truncate comment size. This is a good-enough solution
+    c1 = c1[:len(c2)]
+    c2 = c2[:len(c1)]
+
+    # could be an easy out
+    if c1 == c2:
+        logger.info('COMPLETE MATCH')
+        return True
+
+    # preliminary check
+    matcher = difflib.SequenceMatcher(isjunk=lambda c: c in ' \n\r\t')
+    matcher.set_seqs(c1, c2)
+    qr = matcher.quick_ratio()
+    if qr < COMMENT_MATCH_THRESHOLD:
+        logger.debug('quick ratio: {} – "{}..." and "{}..." don\'t match'.format(
+            qr, c1[:30], c2[:30]
+        ))
+        return False
+
+    # full check
+    dmp = dmp_module.diff_match_patch()
+    # dmp.Diff_Timeout = 0.2
+    diff = dmp.diff_main(c1, c2)
+    # dmp.diff_cleanupSemantic(diff)
+    d = dmp.diff_levenshtein(diff)
+    ratio = 1 - d / max(len(c1), len(c2))
+    verdict = ratio > COMMENT_MATCH_THRESHOLD
+    if verdict:
+        logger.info('full ratio: {} – "{}..." and "{}..." FULL MATCH'.format(
+            round(ratio, 4), c1[:30], c2[:30]
+        ))
+        logger.debug('DIFF:\n{}'.format(
+            diff
+        ))
+    elif ratio > COMMENT_MATCH_THRESHOLD * 0.2:
+        logger.debug('not close to match with full ratio {}: \n\nDIFF:\n{}'.format(
+            round(ratio, 4), diff
+        ))
+    else:
+        logger.debug('full ratio: {} – "{}..." and "{}..." no match'.format(
+            round(ratio, 4), c1[:30], c2[:30]
+        ))
+    return verdict
+
+
+def og_match_msgs(zd_msgs, archive_msgs):
+    return og_diff_pools(
         zd_msgs,
         archive_msgs,
         # sort_key=lambda kv_pair: kv_pair[1][b'ENVELOPE'].date,
         sort_key=lambda kv_pair: kv_pair[1][b'INTERNALDATE'],
-        within_error=email_datetime_match,
-        is_match=zd_archive_email_match
+        within_error=og_email_datetime_match,
+        is_match=og_zd_archive_email_match
     )
 
 
-def diff_pools(dict1, dict2, sort_key, within_error, is_match):
+def og_diff_pools(dict1, dict2, sort_key, within_error, is_match):
     """
     :param dict1: first pool of items
     :param dict2: second pool of items
@@ -88,7 +227,7 @@ def diff_pools(dict1, dict2, sort_key, within_error, is_match):
     return a_matched, a_unmatched, b_matched, b_unmatched
 
 
-def email_datetime_match(msg1, msg2, margin=datetime.timedelta(minutes=MINUTES_TIME_MATCH_ERROR)):
+def og_email_datetime_match(msg1, msg2, margin=datetime.timedelta(minutes=MINUTES_TIME_MATCH_ERROR)):
     d1 = msg1[b'INTERNALDATE']
     d2 = msg2[b'INTERNALDATE']
     verdict = d1 - d2 < margin and d2 - d1 < margin
@@ -98,7 +237,7 @@ def email_datetime_match(msg1, msg2, margin=datetime.timedelta(minutes=MINUTES_T
     return verdict
 
 
-def zd_archive_email_match(zd_msg, archive_msg):
+def og_zd_archive_email_match(zd_msg, archive_msg):
     is_match = text_match(zd_msg, archive_msg)
     return is_match
 

@@ -38,7 +38,7 @@ def concurrent_get_first_comments(ticket_ids):
                 continue
             result = af.result()
             if result.status_code != 200:
-                logger.error('ticket #{} bad status code {}: {}'.format(ticket_ids_chunk[1], result.status_code, result.content))
+                logger.error('ticket #{} bad status code {}: {}'.format(ticket_ids_chunk[i], result.status_code, result.content))
                 audit_ids.append(None)
                 continue
             try:
@@ -135,3 +135,16 @@ def concurrent_get_raw_emails(ticket_ids, first_audit_ids):
             raw_emails.append(None)
 
     return raw_emails
+
+
+def get_new_emails(since=None):
+    if since:
+        start_time = since
+    else:
+        start_time = int(time.time()) - 60 * 60 * 24  # 24 hours ago
+    url_template = '/api/v2/incremental/ticket_events.json?start_time={}&include='
+    session = requests.session()
+    response = session.get(
+        url_template.format(start_time),
+        auth=HTTPBasicAuth(env['ZENDESK_AGENT_ACCOUNT'] + "/token", env['ZENDESK_API_KEY'])
+    )
