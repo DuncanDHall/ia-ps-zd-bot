@@ -222,7 +222,7 @@ def get_still_fresh_zd_triples(zd_still_fresh_filename):
     try:
         return pickle.load(open(zd_still_fresh_filename, 'rb'))
     except FileNotFoundError:
-        return int(datetime.datetime.now()), []
+        return int(datetime.datetime.now().timestamp()), []
 
 
 def run():
