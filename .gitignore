@@ -1,5 +1,6 @@
 .idea/
 *.pickle
+.*.icloud
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos,vim,vscode,pycharm,flask
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,vim,vscode,pycharm,flask

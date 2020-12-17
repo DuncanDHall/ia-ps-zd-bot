@@ -190,7 +190,7 @@ def cleanup(zd_matched, zd_unmatched, archive_matched, archive_unmatched, zd_sti
     pickle.dump((start_time, still_fresh), open(zd_still_fresh_filename, 'wb'))
     # log old unmatched ticket comments
     logger.info('logging {} old zd ticket messages that went unmatched'.format(len(old)))
-    with open('zd_unmatched_log.txt', 'a') as f:
+    with open('zd_unmatched.log', 'a') as f:
         for t, c, t_id in old:
             f.write("""
 Ticket #{}
