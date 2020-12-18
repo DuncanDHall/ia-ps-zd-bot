@@ -123,7 +123,7 @@ def comment_match(c1, c2):
     matcher.set_seqs(c1, c2)
     qr = matcher.quick_ratio()
     if qr < COMMENT_MATCH_THRESHOLD:
-        logger.debug('quick ratio: {} – "{}..." and "{}..." don\'t match'.format(
+        logger.debug('quick ratio: {} - "{}..." and "{}..." don\'t match'.format(
             qr, c1[:30], c2[:30]
         ))
         return False
@@ -137,7 +137,7 @@ def comment_match(c1, c2):
     ratio = 1 - d / max(len(c1), len(c2))
     verdict = ratio > COMMENT_MATCH_THRESHOLD
     if verdict:
-        logger.info('full ratio: {} – "{}..." and "{}..." FULL MATCH'.format(
+        logger.info('full ratio: {} - "{}..." and "{}..." FULL MATCH'.format(
             round(ratio, 4), c1[:30], c2[:30]
         ))
         logger.debug('DIFF:\n{}'.format(
@@ -148,7 +148,7 @@ def comment_match(c1, c2):
             round(ratio, 4), diff
         ))
     else:
-        logger.debug('full ratio: {} – "{}..." and "{}..." no match'.format(
+        logger.debug('full ratio: {} - "{}..." and "{}..." no match'.format(
             round(ratio, 4), c1[:30], c2[:30]
         ))
     return verdict
@@ -268,7 +268,7 @@ def text_match(zd_msg, archive_msg, threshold=0.90):
     matcher.set_seqs(zd_text, archive_text)
     qr = matcher.quick_ratio()
     if qr < threshold:
-        logger.debug('quick ratio: {} – "{}" and "{}" don\'t match'.format(
+        logger.debug('quick ratio: {} - "{}" and "{}" don\'t match'.format(
             qr, zd_subject, archive_subject
         ))
         return False
@@ -281,11 +281,11 @@ def text_match(zd_msg, archive_msg, threshold=0.90):
     ratio = 1 - d / max(len(zd_text), len(archive_text))
     verdict = ratio > threshold
     if verdict:
-        logger.info('full ratio: {} – "{}" and "{}" FULL MATCH'.format(
+        logger.info('full ratio: {} - "{}" and "{}" FULL MATCH'.format(
             round(ratio, 4), zd_subject, archive_subject
         ))
     else:
-        logger.debug('full ratio: {} – "{}" and "{}" no match'.format(
+        logger.debug('full ratio: {} - "{}" and "{}" no match'.format(
             round(ratio, 4), zd_subject, archive_subject
         ))
     return verdict
