@@ -115,6 +115,7 @@ def parse_emails_response(support_emails_response):
     html2text.config.IGNORE_TABLES = True
     html2text.config.IGNORE_IMAGES = False
     h = html2text.HTML2Text()
+    h.body_width = 0
     h.ignore_links = True
 
     # patterns and formats
@@ -142,17 +143,19 @@ def parse_emails_response(support_emails_response):
 
         # get message body
         raw = msg.get_body(preferencelist=('plain',))
-        if raw is None:
+        if raw is not None:
+            body = raw.get_content()
+        else:
             raw = msg.get_body(preferencelist=('html',))
             if raw is None:
                 logger.error('Found message with no plain or html body')
                 continue
-        try:
-            html_content = raw.get_content()
-        except LookupError as e:
-            logger.error(e)
-            continue
-        body = h.handle(raw.get_content())
+            try:
+                html_content = raw.get_content()
+            except LookupError as e:
+                logger.error(e)
+                continue
+            body = h.handle(html_content)
 
         support_decorated_comments.append((time_stamp, body, msg_id))
 

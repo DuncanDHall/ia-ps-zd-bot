@@ -57,7 +57,7 @@ def get_raw_mail(unseen=True, read_only=False, config=get_default_imap_config())
         logger.debug('fetching msg data')
         msg_data = {}
         for msg_ids_chunk in chunked(msg_ids, 1000):
-            msg_data.update(server.fetch(msg_ids_chunk, ['BODY[TEXT]', 'ENVELOPE']))
+            msg_data.update(server.fetch(msg_ids_chunk, ['BODY[]', 'ENVELOPE']))
 
         server.logout()
         return msg_data

@@ -3,6 +3,8 @@ from requests.auth import HTTPBasicAuth
 import re
 from os import environ as env
 import time
+from email.parser import BytesParser
+from email import policy
 
 import quopri
 import html2text
@@ -59,7 +61,8 @@ def parse_msg_data(msg_data):
         ticket = match.group('id')
 
     # get body
-    response_body = get_plain_response_body(msg_data[b'BODY[TEXT]'])
+    raw_body = msg_data[b'BODY[]']
+    response_body = get_plain_response_body(raw_body)
 
     # get sender
     envelope = msg_data[b'ENVELOPE']
@@ -101,28 +104,45 @@ def send_rejection(receiver):
     )
 
 
-def get_plain_response_body(raw_body):
-    plain = None
-    html = None
-    for content_type, part_body in part_gen(raw_body, content_types=['text/html', 'text/plain']):
-        if content_type == 'text/html' and html is None:
-            html = part_body
-        if content_type == 'text/plain' and plain is None:
-            plain = part_body
-            break
-    if plain is None:
-        if html is None:
-            logger.error("could not find plain or html text section: {}".format(raw_body))
-            exit(1)
-        plain = html2text.HTML2Text().handle(html)
+def get_plain_response_body(msg_bytes):
 
-    prelim_lines = plain.split(DELIMITER)[0].split('\n')
-    if prelim_lines[-1].find(MAILBOT_NAME) != -1:
-        body = '\n'.join(prelim_lines[:-1])
+    msg = BytesParser(policy=policy.default).parsebytes(msg_bytes)
+
+    raw = msg.get_body(preferencelist=('plain',))
+    if raw is not None:
+        plain = raw.get_content().replace('\r\n', '\n')
     else:
-        body = '\n'.join(prelim_lines)
+        raw = msg.get_body(preferencelist=('html',))
+        if raw is None:
+            logger.error('Found message with no plain or html body')
+        try:
+            html_content = raw.get_content()
+        except LookupError as e:
+            logger.error(e)
+        h = html2text.HTML2Text()
+        h.body_width = 0
+        h.ignore_links = True
+        plain = h.handle(html_content)
 
-    return body.strip()
+    # removing quoted content
+    lines = plain.split('\n')
+    for i, line in enumerate(lines):
+        j = line.find(DELIMITER)
+        if j != -1:
+            # found DELIMITER line
+            quoted_prefix = line[:j].strip()
+            break
+    content_lines = list(filter(lambda line: not line.startswith(quoted_prefix), lines))
+
+    # removing "On <date> Support Team wrote:
+    while content_lines[-1].strip() == '':
+        content_lines.pop()
+    if content_lines[-1].find(MAILBOT_NAME) != -1:
+        content_lines.pop()
+    if content_lines[-1].find(env['MAILBOT_ADDRESS']) != -1:
+        content_lines.pop()
+
+    return '\n'.join(content_lines).strip()
 
 
 def part_gen(raw_body, content_types=None):
@@ -164,7 +184,7 @@ payload_template_dict = {
             }
         },
         "status": "open",
-        "additional_tags": ["_automated_update_"]
+        "additional_tags": ["__consultbot__"]
     }
 }
 # payload_template_dict = {
@@ -181,12 +201,12 @@ payload_template_dict = {
 # }
 
 comment_template = """{body}
-– {signed}
-"""
+
+- {signed}"""
 
 
 def update_ticket(ticket_id, body, sender, public=True):
-    signed = sender[0] if public else "{} <{}>".format(*sender)
+    signed = sender[0].split(' ')[0] if public else "{} <{}>".format(*sender)
     comment = comment_template.format(body=body, signed=signed)
     payload = payload_template_dict
     payload['ticket']['comment']['body'] = comment
