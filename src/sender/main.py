@@ -2,12 +2,10 @@ from os import environ as env
 
 from flask import Flask, jsonify, request
 from werkzeug.exceptions import BadRequest
-import smtplib
-from email.message import EmailMessage
 
-from config import *
-from zdbotutils.custom_logging import logger
-from zdbotutils import mail
+from shared.config import *
+from shared.custom_logging import logger
+from shared import mail
 
 app = Flask("zd-mailbot")
 

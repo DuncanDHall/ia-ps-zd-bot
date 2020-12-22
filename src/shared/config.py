@@ -17,7 +17,7 @@ MAILBOT_CC_NAME = "Original Sender (automated)"
 
 SUBJECT_PATTERN = "ZDC{}: {}"
 DELIMITER = "===================="
-_MESSAGE = """This is an automatically forwarded email from the Internet Archive Patron Support
+_MESSAGE = """This is an automatically forwarded email from the Internet Archive Patron Support \
 team. Your assistance with this ticket is greatly appreciated. Text sent in a reply above this \
 note will appear in our ticket logs as an internal note. \
 If you feel it is appropriate, please Reply-All to share your response with the original \

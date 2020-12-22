@@ -8,9 +8,9 @@ import io
 
 from requests_futures.sessions import FuturesSession
 
-from zdbotutils.custom_logging import logger
-from zdbotutils.mail import chunked
-from config import *
+from shared.custom_logging import logger
+from shared.mail import chunked
+from shared.config import *
 
 
 def concurrent_get_first_comments(ticket_ids):

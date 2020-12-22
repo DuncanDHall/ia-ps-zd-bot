@@ -25,10 +25,10 @@ import re
 
 import html2text
 
-from zdbotutils import diff
-from zdbotutils.custom_logging import logger
-from config import *
-from zdbotutils.mail import chunked
+from shared import diff
+from shared.custom_logging import logger
+from shared.config import *
+from shared.mail import chunked
 
 
 def get_zd_updates(start_time):

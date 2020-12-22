@@ -4,8 +4,8 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from config import IMAP_SERVER, IMAP_PORT, SMTP_SERVER, SMTP_PORT
-from zdbotutils.custom_logging import logger
+from shared.config import IMAP_SERVER, IMAP_PORT, SMTP_SERVER, SMTP_PORT
+from shared.custom_logging import logger
 
 
 def get_default_imap_config():

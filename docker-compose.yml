@@ -6,32 +6,42 @@ services:
   consult_send:
     build:
       context: .
-      dockerfile: Dockerfile-send
-    image: consult_sender:consult-mailbot  # name the image 'mailbot'
+      dockerfile: Dockerfile
+    image: consult_sender:consult-mailbot
     container_name: consult_sender
     env_file:
       - .env
     ports:
       - "127.0.0.1:5000:5000"
+    volumes:
+      - ./src/sender:/src
+      - ./src/shared:/src/shared
     restart: unless-stopped
 
   # check mailbox and update ZD ticket
   consult_receive:
     build:
       context: .
-      dockerfile: Dockerfile-receive
+      dockerfile: Dockerfile
     image: consult_receiver:consult-mailbot
     container_name: consult_receiver
     env_file:
       - .env
+    volumes:
+      - ./src/receiver:/src
+      - ./src/shared:/src/shared
     restart: unless-stopped
 
+  # compares ticket updates from ZD with custom mailbox with all support tickets
   diffbot:
     build:
       context: .
-      dockerfile: Dockerfile-diff
+      dockerfile: Dockerfile
     image: differ:diffbot
     container_name: differ
     env_file:
       - .env
+    volumes:
+      - ./src/diffbot:/src
+      - ./src/shared:/src/shared
     restart: unless-stopped

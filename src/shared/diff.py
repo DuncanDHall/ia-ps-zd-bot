@@ -5,10 +5,10 @@ import time
 
 import diff_match_patch as dmp_module
 
-from zdbotutils import apiservice
-from zdbotutils.custom_logging import logger
+from shared import apiservice
+from shared.custom_logging import logger
 
-from config import *
+from shared.config import *
 
 
 def match_msgs(needles, haystack):

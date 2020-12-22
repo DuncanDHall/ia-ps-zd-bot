@@ -9,9 +9,9 @@ from email import policy
 import quopri
 import html2text
 
-from config import *
-from zdbotutils.custom_logging import logger
-from zdbotutils import mail
+from shared.config import *
+from shared.custom_logging import logger
+from shared import mail
 
 
 class TicketUpdateException(Exception):
