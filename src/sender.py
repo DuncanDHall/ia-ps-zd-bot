@@ -38,7 +38,7 @@ def consult():
     payload structure:
         {
             "ticket_id": Int,
-            "consultant": "<consultant>@archive.org",
+            "consultant": "<consultant>@archive.org, ...",
             "subject": String,
             "body": String,
             "html_body": String,
@@ -64,28 +64,27 @@ def consult():
         logger.error(message)
         return jsonify({"Error": message}), 400
 
-    try:
-        message_args = (
-            json['consultant'], json['subject'], json['body'],
-            json['html_body'], json['ticket_id']
-        )
-    except KeyError as e:
+    # verify correct keys
+    required_keys = ['consultant', 'subject', 'body', 'html_body', 'ticket_id']
+    if any(map(lambda k: k not in json, required_keys)):
         logger.error("Invalid data keys")
         return jsonify({"Error": "Json object must contain the following non-optional keys",
                         "keys": ["consultant", "subject", "body", "html_body", "ticket_id"]}), 400
 
+    # send mail
     body = INTERNAL_MESSAGE_PLAIN + json['body']
     html_body = INTERNAL_MESSAGE_HTML + json['html_body']
     body = body.replace('\\n', '\n')
     html_body = html_body.replace('\\n', '\n')
-    mail.send_mail(
-        sender='{} <{}>'.format(MAILBOT_NAME, env['MAILBOT_ADDRESS']),
-        receiver=json['consultant'],
-        subject=SUBJECT_PATTERN.format(json['ticket_id'], json['subject']),
-        body=body,
-        html_body = html_body,
-        cc=['{} <{}>'.format(MAILBOT_CC_NAME, env['MAILBOT_CC_ADDRESS'])]
-    )
+    for consultant in json['consultant'].replace(' ', '').split(','):
+        mail.send_mail(
+            sender='{} <{}>'.format(MAILBOT_NAME, env['MAILBOT_ADDRESS']),
+            receiver=consultant,
+            subject=SUBJECT_PATTERN.format(json['ticket_id'], json['subject']),
+            body=body,
+            html_body = html_body,
+            cc=['{} <{}>'.format(MAILBOT_CC_NAME, env['MAILBOT_CC_ADDRESS'])]
+        )
     return jsonify({"Success": "Consultant has been emailed"}), 200
 
 

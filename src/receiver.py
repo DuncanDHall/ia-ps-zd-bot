@@ -187,19 +187,6 @@ payload_template_dict = {
         "additional_tags": ["__consultbot__"]
     }
 }
-# payload_template_dict = {
-#     "ticket": {
-#         "comment": {
-#             "body": "{body}",
-#             "public": False,
-#             "via": {
-#                 "channel": "mailbot"
-#             }
-#         },
-#         "status": "open"
-#     }
-# }
-
 comment_template = """{body}
 
 - {signed}"""
