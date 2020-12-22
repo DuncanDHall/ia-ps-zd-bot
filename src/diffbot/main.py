@@ -144,7 +144,11 @@ def parse_emails_response(support_emails_response):
         # get message body
         raw = msg.get_body(preferencelist=('plain',))
         if raw is not None:
-            body = raw.get_content()
+            try:
+                body = raw.get_content()
+            except LookupError as e:
+                logger.error(e)
+                continue
         else:
             raw = msg.get_body(preferencelist=('html',))
             if raw is None:
